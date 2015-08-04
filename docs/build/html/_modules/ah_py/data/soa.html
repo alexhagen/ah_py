@@ -1,0 +1,345 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ah_py.data.soa &mdash; ah_py 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="ah_py 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ah_py.data.soa</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span><span class="p">;</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="kn">as</span> <span class="nn">dt</span><span class="p">;</span>
+<span class="kn">import</span> <span class="nn">math</span><span class="p">;</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="p">;</span>
+<span class="kn">import</span> <span class="nn">struct</span><span class="p">;</span>
+<span class="kn">from</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">import</span> <span class="n">close</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">..plotting</span> <span class="kn">import</span> <span class="n">twod</span> <span class="k">as</span> <span class="n">ahp</span>
+<span class="kn">from</span> <span class="nn">..calc</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">ahf</span>
+
+<div class="viewcode-block" id="ucs20"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ucs20">[docs]</a><span class="k">class</span> <span class="nc">ucs20</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39; UCS20 is an object for interacting with the UCS20 output files saved in </span>
+<span class="sd">	comma separated value formats &#39;&#39;&#39;</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span> <span class="o">=</span> <span class="bp">None</span> <span class="p">):</span>
+		<span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">import_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+<div class="viewcode-block" id="ucs20.import_csv"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ucs20.import_csv">[docs]</a>	<span class="k">def</span> <span class="nf">import_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span> <span class="o">=</span> <span class="bp">None</span> <span class="p">):</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">);</span>
+		<span class="n">lineno</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+		<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+			<span class="c"># increment the line number</span>
+			<span class="n">lineno</span><span class="o">=</span><span class="n">lineno</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+			<span class="c"># import lines to data structures until we get to &quot;Channel Data&quot;</span>
+			<span class="k">if</span> <span class="s">&quot;Channel Data:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+				<span class="k">break</span><span class="p">;</span>
+		<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">();</span>
+		<span class="n">arr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">skip_header</span><span class="o">=</span><span class="n">lineno</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+			<span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]);</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">();</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">counts</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+<div class="viewcode-block" id="ucs20.plot_spectrum"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ucs20.plot_spectrum">[docs]</a>	<span class="k">def</span> <span class="nf">plot_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">addto</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">xerr</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">yerr</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">line</span> <span class="o">=</span> <span class="n">ahf</span><span class="o">.</span><span class="n">curve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="s">&#39;binned&#39;</span><span class="p">);</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">plt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">addto</span><span class="o">=</span><span class="n">addto</span><span class="p">,</span><span class="n">xerr</span><span class="o">=</span><span class="n">xerr</span><span class="p">,</span><span class="n">yerr</span><span class="o">=</span><span class="n">yerr</span><span class="p">);</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plt</span><span class="p">;</span>
+
+</div></div>
+<div class="viewcode-block" id="calc_eff_ratio"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.calc_eff_ratio">[docs]</a><span class="k">def</span> <span class="nf">calc_eff_ratio</span><span class="p">(</span><span class="n">eta_cf</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">sigma_eta_cf</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">eta_dd</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">sigma_eta_dd</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+	<span class="n">r</span> <span class="o">=</span> <span class="n">eta_cf</span> <span class="o">/</span> <span class="n">eta_dd</span><span class="p">;</span>
+	<span class="n">sigma_r</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> \
+		<span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">eta_dd</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_eta_dd</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="p">(</span><span class="o">-</span><span class="n">eta_cf</span><span class="o">/</span><span class="n">eta_dd</span><span class="o">**</span><span class="mf">2.0</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> \
+		<span class="n">sigma_eta_dd</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+	<span class="k">return</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">sigma_r</span><span class="p">);</span>
+</div>
+<div class="viewcode-block" id="calc_ls_eff"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.calc_ls_eff">[docs]</a><span class="k">def</span> <span class="nf">calc_ls_eff</span><span class="p">(</span><span class="n">c_raw_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">c_raw_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">d_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_d_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+	<span class="n">I_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_I_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">r_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_r_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">l_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+	<span class="n">u_l_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">t_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_t_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">t_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_t_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+	<span class="c"># first find all of the relative errors from the absolute error</span>
+	<span class="n">sigma_d_src</span> <span class="o">=</span> <span class="n">u_d_src</span> <span class="o">/</span> <span class="n">d_src</span><span class="p">;</span>
+	<span class="n">sigma_I_src</span> <span class="o">=</span> <span class="n">u_I_src</span> <span class="o">/</span> <span class="n">I_src</span><span class="p">;</span>
+	<span class="n">sigma_r_det</span> <span class="o">=</span> <span class="n">u_r_det</span> <span class="o">/</span> <span class="n">r_det</span><span class="p">;</span>
+	<span class="n">sigma_l_det</span> <span class="o">=</span> <span class="n">u_l_det</span> <span class="o">/</span> <span class="n">l_det</span><span class="p">;</span>
+	<span class="n">sigma_t_src</span> <span class="o">=</span> <span class="n">u_t_src</span> <span class="o">/</span> <span class="n">t_src</span><span class="p">;</span>
+	<span class="n">sigma_t_bkg</span> <span class="o">=</span> <span class="n">u_t_bkg</span> <span class="o">/</span> <span class="n">t_bkg</span><span class="p">;</span>
+	<span class="c"># calculate error in counts using poisson</span>
+	<span class="n">sigma_c_raw_src</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c_raw_src</span><span class="p">)</span><span class="o">/</span><span class="n">c_raw_src</span><span class="p">;</span>
+	<span class="c"># calculate error in background using poisson</span>
+	<span class="n">sigma_c_raw_bkg</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c_raw_bkg</span><span class="p">)</span><span class="o">/</span><span class="n">c_raw_bkg</span><span class="p">;</span>
+	<span class="c"># adjust background counts to match actual counts</span>
+	<span class="n">c_bkg</span> <span class="o">=</span> <span class="n">t_src</span> <span class="o">*</span> <span class="n">c_raw_bkg</span> <span class="o">/</span> <span class="n">t_bkg</span><span class="p">;</span>
+	<span class="c"># calculate the error in the background counts</span>
+	<span class="n">sigma_c_bkg</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_raw_bkg</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="o">-</span><span class="n">t_src</span><span class="o">*</span><span class="n">c_raw_bkg</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_bkg</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="n">t_src</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_raw_bkg</span><span class="o">**</span><span class="mf">2.0</span><span class="p">;</span>
+	<span class="c"># calculate efficiency using efficiency equation</span>
+	<span class="n">eta_src</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">c_raw_src</span><span class="o">-</span><span class="n">c_bkg</span><span class="p">)</span><span class="o">*</span><span class="n">d_src</span><span class="o">*</span><span class="n">d_src</span><span class="o">/</span><span class="p">(</span><span class="n">I_src</span><span class="o">*</span><span class="n">r_det</span><span class="o">*</span><span class="n">l_det</span><span class="o">*</span><span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># calculate propagated error using error propagation formula</span>
+	<span class="c"># squared term to the raw count error</span>
+	<span class="n">A</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the background count error</span>
+	<span class="n">B</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the distance to source error</span>
+	<span class="n">C</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the source intensity error</span>
+	<span class="n">D</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the detector radius error</span>
+	<span class="n">E</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the detector length error</span>
+	<span class="n">F</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term for the time error</span>
+	<span class="n">G</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+	<span class="n">sigma_eta_src</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="n">A</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_raw_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">B</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_bkg</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">C</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">D</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_I_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">E</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_r_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">F</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_l_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">G</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_src</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">eta_src</span><span class="p">,</span><span class="n">sigma_eta_src</span>
+</div>
+<div class="viewcode-block" id="calc_cmb_ls_eff"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.calc_cmb_ls_eff">[docs]</a><span class="k">def</span> <span class="nf">calc_cmb_ls_eff</span><span class="p">(</span><span class="n">c_raw_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">c_raw_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">d_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_d_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+	<span class="n">I_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_I_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">r_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_r_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">l_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+	<span class="n">u_l_det</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">t_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_t_src</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">t_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_t_bkg</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+	<span class="n">c_raw_oppsrc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">t_oppsrc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">u_t_oppsrc</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+	<span class="c"># first find all of the relative errors from the absolute error</span>
+	<span class="n">sigma_d_src</span> <span class="o">=</span> <span class="n">u_d_src</span> <span class="o">/</span> <span class="n">d_src</span><span class="p">;</span>
+	<span class="n">sigma_I_src</span> <span class="o">=</span> <span class="n">u_I_src</span> <span class="o">/</span> <span class="n">I_src</span><span class="p">;</span>
+	<span class="n">sigma_r_det</span> <span class="o">=</span> <span class="n">u_r_det</span> <span class="o">/</span> <span class="n">r_det</span><span class="p">;</span>
+	<span class="n">sigma_l_det</span> <span class="o">=</span> <span class="n">u_l_det</span> <span class="o">/</span> <span class="n">l_det</span><span class="p">;</span>
+	<span class="n">sigma_t_src</span> <span class="o">=</span> <span class="n">u_t_src</span> <span class="o">/</span> <span class="n">t_src</span><span class="p">;</span>
+	<span class="n">sigma_t_bkg</span> <span class="o">=</span> <span class="n">u_t_bkg</span> <span class="o">/</span> <span class="n">t_bkg</span><span class="p">;</span>
+	<span class="n">sigma_t_oppsrc</span> <span class="o">=</span> <span class="n">u_t_oppsrc</span> <span class="o">/</span> <span class="n">t_oppsrc</span><span class="p">;</span>
+	<span class="c"># calculate error in counts using poisson</span>
+	<span class="n">sigma_c_raw_src</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c_raw_src</span><span class="p">)</span><span class="o">/</span><span class="n">c_raw_src</span><span class="p">;</span>
+	<span class="c"># calculate error in background using poisson</span>
+	<span class="n">sigma_c_raw_bkg</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c_raw_bkg</span><span class="p">)</span><span class="o">/</span><span class="n">c_raw_bkg</span><span class="p">;</span>
+	<span class="c"># calculate error in the opposing source using poisson</span>
+	<span class="n">sigma_c_raw_oppsrc</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c_raw_oppsrc</span><span class="p">)</span><span class="o">/</span><span class="n">c_raw_oppsrc</span><span class="p">;</span>
+	<span class="c"># adjust background counts to match actual counts</span>
+	<span class="n">c_bkg</span> <span class="o">=</span> <span class="n">t_src</span> <span class="o">*</span> <span class="n">c_raw_bkg</span> <span class="o">/</span> <span class="n">t_bkg</span><span class="p">;</span>
+	<span class="c"># adjust opposing source counts to match actual counts</span>
+	<span class="n">c_oppsrc</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_src</span> <span class="o">*</span> <span class="n">c_raw_oppsrc</span> <span class="o">/</span> <span class="n">t_oppsrc</span><span class="p">)</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">;</span>
+	<span class="c"># calculate the error in the opposing source</span>
+	<span class="n">sigma_c_oppsrc</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_raw_oppsrc</span><span class="o">/</span><span class="n">t_oppsrc</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="o">-</span><span class="n">t_src</span><span class="o">*</span><span class="n">c_raw_oppsrc</span><span class="o">/</span><span class="n">t_oppsrc</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_oppsrc</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="n">t_src</span><span class="o">/</span><span class="n">t_oppsrc</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_raw_oppsrc</span><span class="o">**</span><span class="mf">2.0</span><span class="p">;</span>
+	<span class="c"># calculate the error in the background counts</span>
+	<span class="n">sigma_c_bkg</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_raw_bkg</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="o">-</span><span class="n">t_src</span><span class="o">*</span><span class="n">c_raw_bkg</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_bkg</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+	<span class="p">(</span><span class="n">t_src</span><span class="o">/</span><span class="n">t_bkg</span><span class="p">)</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_raw_bkg</span><span class="o">**</span><span class="mf">2.0</span><span class="p">;</span>
+	<span class="c"># calculate efficiency using efficiency equation</span>
+	<span class="n">eta_src</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">c_raw_src</span><span class="o">-</span><span class="n">c_oppsrc</span><span class="o">-</span><span class="n">c_bkg</span><span class="p">)</span><span class="o">*</span><span class="n">d_src</span><span class="o">*</span><span class="n">d_src</span><span class="o">/</span><span class="p">(</span><span class="n">I_src</span><span class="o">*</span><span class="n">r_det</span><span class="o">*</span><span class="n">l_det</span><span class="o">*</span><span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># calculate propagated error using error propagation formula</span>
+	<span class="c"># squared term to the raw count error</span>
+	<span class="n">A</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the background count error</span>
+	<span class="n">B</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the distance to source error</span>
+	<span class="n">C</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the source intensity error</span>
+	<span class="n">D</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the detector radius error</span>
+	<span class="n">E</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term to the detector length error</span>
+	<span class="n">F</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">t_src</span><span class="p">);</span>
+	<span class="c"># squared term for the time error</span>
+	<span class="n">G</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_raw_src</span> <span class="o">-</span> <span class="n">c_bkg</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">/</span> \
+	<span class="p">(</span><span class="n">I_src</span> <span class="o">*</span> <span class="n">r_det</span> <span class="o">*</span> <span class="n">l_det</span> <span class="o">*</span> <span class="n">t_src</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+	<span class="n">sigma_eta_src</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="n">A</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_raw_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">B</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_c_bkg</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">C</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_d_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">D</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_I_src</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">E</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_r_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> \
+		<span class="n">F</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_l_det</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">+</span> <span class="n">G</span><span class="o">**</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma_t_src</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">eta_src</span><span class="p">,</span><span class="n">sigma_eta_src</span>
+</div>
+<div class="viewcode-block" id="ls_test"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_test">[docs]</a><span class="k">class</span> <span class="nc">ls_test</span><span class="p">:</span>
+	<span class="n">something</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="p">;</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">test_id</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="n">source_str</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="n">delt</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span><span class="n">t</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">counts</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+		<span class="n">notes</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">bf3_files</span><span class="o">=</span><span class="p">[]):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">test_id</span> <span class="o">=</span> <span class="n">test_id</span><span class="p">;</span> <span class="c"># set up the test id</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">det_A</span> <span class="o">=</span> <span class="mf">25.0</span><span class="p">;</span> <span class="c"># the Ne-213 has a 5cm OD x 5cm H</span>
+		<span class="c"># set up a list to list all the sources involved</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="p">[];</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span> <span class="o">=</span> <span class="p">[];</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">source_dist</span> <span class="o">=</span> <span class="p">[];</span>
+		<span class="c"># read in each source separately</span>
+		<span class="n">sources</span> <span class="o">=</span> <span class="n">source_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">);</span>
+		<span class="k">for</span> <span class="n">src</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+			<span class="n">src_param</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;@&#39;</span><span class="p">);</span>
+			<span class="c"># determine the source</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">src_param</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="c"># source identifier</span>
+			<span class="c"># if we&#39;ve listed a distance, add that to the source dist list</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src_param</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">source_dist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">src_param</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&#39;cm&#39;</span><span class="p">)));</span> 
+				<span class="c"># source distance in cm</span>
+			<span class="c"># otherwise assume that it&#39;s right at the detector</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">source_dist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+			<span class="c"># if we&#39;ve listed a flux for the source, extract that</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src_param</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">src_param</span><span class="p">[</span><span class="mi">2</span><span class="p">]));</span> 
+				<span class="c"># source strength in intensity</span>
+			<span class="c"># or use our known intensity for our isotope sources</span>
+			<span class="k">elif</span> <span class="n">src_param</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Cf-252&#39;</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0E4</span><span class="p">);</span>
+			<span class="k">elif</span> <span class="n">src_param</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Pu-Be&#39;</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">2.0E6</span><span class="p">);</span>
+		<span class="c"># find out the time it took</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">delt</span> <span class="o">=</span> <span class="n">delt</span><span class="p">;</span>
+		<span class="c"># amplify our accelerator sources by the level from the BF3 - if needed</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">;</span>
+		<span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+			<span class="c"># import the times from bf3 files</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bf3_times</span> <span class="o">=</span> <span class="p">[];</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bf3_cpms</span> <span class="o">=</span> <span class="p">[];</span>
+			<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">bf3_files</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">add_bf3_counter_file</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+			<span class="c"># find the start and stop time of the ls test</span>
+			<span class="n">delta</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delt</span><span class="p">);</span>
+			<span class="n">time_start</span> <span class="o">=</span> <span class="n">t</span> <span class="o">-</span> <span class="n">delta</span><span class="p">;</span>
+			<span class="n">averaging_cpms</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">time</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bf3_times</span><span class="p">):</span>
+				<span class="k">if</span> <span class="n">time</span> <span class="o">&gt;</span> <span class="n">time_start</span> <span class="ow">and</span> <span class="n">time</span> <span class="o">&lt;</span> <span class="n">t</span><span class="p">:</span>
+					<span class="n">averaging_cpms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bf3_cpms</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+			<span class="n">count_average</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">averaging_cpms</span><span class="p">);</span>
+
+		<span class="c"># import our number of counts</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="p">;</span>
+		<span class="c"># take any notes</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span><span class="p">;</span>
+		<span class="c"># calculate the efficiency for this test</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span><span class="p">();</span>
+		<span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">eff</span><span class="p">;</span>
+<div class="viewcode-block" id="ls_test.calc_phi"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_test.calc_phi">[docs]</a>	<span class="k">def</span> <span class="nf">calc_phi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">pass</span></div>
+<div class="viewcode-block" id="ls_test.calc_eff"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_test.calc_eff">[docs]</a>	<span class="k">def</span> <span class="nf">calc_eff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">incident_ns</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+		<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">src</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">):</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_dist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+				<span class="n">solid_angle</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">solid_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">det_A</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">source_dist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mf">2.0</span><span class="p">);</span>
+			<span class="k">print</span> <span class="n">solid_angle</span><span class="p">;</span>
+			<span class="k">if</span> <span class="n">i</span><span class="o">&lt;</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span><span class="p">):</span>
+				<span class="n">incident_ns</span> <span class="o">=</span> <span class="n">incident_ns</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_strength</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+		<span class="k">if</span> <span class="n">incident_ns</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="n">eta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">incident_ns</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">delt</span><span class="p">);</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">eta</span> <span class="o">=</span> <span class="bp">None</span><span class="p">;</span>
+		<span class="k">return</span> <span class="n">eta</span><span class="p">;</span></div>
+<div class="viewcode-block" id="ls_test.add_bf3_counter_file"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_test.add_bf3_counter_file">[docs]</a>	<span class="k">def</span> <span class="nf">add_bf3_counter_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+		<span class="n">arr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">skip_header</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">comments</span><span class="o">=</span><span class="s">&quot;#&quot;</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+			<span class="n">usecols</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">));</span>
+		<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+			<span class="n">time</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span><span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span><span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">]));</span>
+			<span class="n">cpm</span> <span class="o">=</span> <span class="mf">60.0</span><span class="o">*</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bf3_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">);</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">bf3_cpms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cpm</span><span class="p">);</span></div>
+<div class="viewcode-block" id="ls_test.print_test"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_test.print_test">[docs]</a>	<span class="k">def</span> <span class="nf">print_test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">print</span> <span class="s">&quot;Test </span><span class="si">%s</span><span class="s">: </span><span class="si">%i</span><span class="s"> s, giving </span><span class="si">%i</span><span class="s"> counts from a </span><span class="si">%s</span><span class="s"> source&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_id</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">delt</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+	</div></div>
+<div class="viewcode-block" id="ls_data"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_data">[docs]</a><span class="k">class</span> <span class="nc">ls_data</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="n">data</span> <span class="o">=</span> <span class="p">{};</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="c">#initialize here</span>
+		<span class="k">pass</span>
+<div class="viewcode-block" id="ls_data.import_dat"><a class="viewcode-back" href="../../../ah_py.data.html#ah_py.data.soa.ls_data.import_dat">[docs]</a>	<span class="k">def</span> <span class="nf">import_dat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">bf3_files</span><span class="o">=</span><span class="p">[]):</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">)</span>
+		<span class="n">arr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">comments</span><span class="o">=</span><span class="s">&quot;#&quot;</span><span class="p">,</span><span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+			<span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span><span class="n">usecols</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">));</span>
+		<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;None&#39;</span><span class="p">:</span>
+				<span class="n">time_end</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span><span class="s">&#39;%a %b </span><span class="si">%d</span><span class="s"> %H:%M:%S %Y&#39;</span><span class="p">);</span>
+				<span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;None&#39;</span><span class="p">:</span>
+					<span class="n">time_add</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span><span class="s">&#39;%H:%M:%S&#39;</span><span class="p">);</span>
+					<span class="n">delta</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">time_add</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span><span class="n">minutes</span><span class="o">=</span><span class="n">time_add</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span><span class="n">seconds</span><span class="o">=</span><span class="n">time_add</span><span class="o">.</span><span class="n">second</span><span class="p">);</span>
+					<span class="n">time_end</span> <span class="o">=</span> <span class="n">time_end</span> <span class="o">+</span> <span class="n">delta</span><span class="p">;</span>
+			<span class="n">test</span> <span class="o">=</span> <span class="n">ls_test</span><span class="p">(</span><span class="n">test_id</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">source_str</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">t</span><span class="o">=</span><span class="n">time_end</span><span class="p">,</span>
+				<span class="n">delt</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">counts</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span><span class="n">notes</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span><span class="n">bf3_files</span><span class="o">=</span><span class="n">bf3_files</span><span class="p">);</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">test</span><span class="p">;</span>
+			<span class="k">del</span> <span class="n">test</span><span class="p">;</span>
+		<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">print_test</span><span class="p">();</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Alex Hagen.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
