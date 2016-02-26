@@ -1,9 +1,9 @@
 import math
 import sys
 import numpy as np
-sys.path.append("/Users/ahagen/code");
-from ah_py.plotting import twod as ahp
-from ah_py.calc import func as ahm
+sys.path.append("/Users/ahagen/code")
+from pym import func as ahm
+from pyg import twod as ahp
 from ah_py.calc import ndata as ahs
 
 def tait_p(T,rho,P_c,T_c,M):

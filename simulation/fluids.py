@@ -1,7 +1,9 @@
 import math
 import numpy as np
-from ..plotting import twod as ahp
-from ..calc import func as ahm
+import sys
+sys.path.append("/Users/ahagen/code")
+from pym import func as ahm
+from pyg import twod as ahp
 
 class fluid(object):
     # a limit of error in iteration to find pressure
@@ -9,10 +11,10 @@ class fluid(object):
     # a limit of error in iteration to find temperature
     epsilon_T = 1.0E-5;
     R = 8.3145;
-    def __init__(self,name=None):
-        if name.lower() == 'acetone':
-            self.P_c = 4690000.0;
-            self.T_c = 508.100;
+    def __init__(self, name=None):
+        if name.lower() in ['acetone', 'ace']:
+            self.P_c = 4690000.0
+            self.T_c = 508.100
             P_b = [ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.,
                 18.,19.,20.,21.,22.,23.,24.,25.,26.,27.,28.,29.,30.,31.,32.,33.,
                 34.,35.,36.,37.,38.,39.,40.,41.,42.,43.,44.,45.,46.,47.,48.,49.,
@@ -27,7 +29,7 @@ class fluid(object):
                 159.,160.,161.,162.,163.,164.,165.,166.,167.,168.,169.,170.,
                 171.,172.,173.,174.,175.,176.,177.,178.,179.,180.,181.,182.,
                 183.,184.,185.,186.,187.,188.,189.,190.,191.,192.,193.,194.,
-                195.,196.,197.,198.,199.,200. ];
+                195.,196.,197.,198.,199.,200. ]
             T_b = [ 237.48,247.36,253.59,258.25,262.00,265.17,267.91,270.35,
                 272.54,274.53,276.36,278.06,279.65,281.14,282.54,283.87,285.12,
                 286.32,287.47,288.57,289.62,290.63,291.61,292.55,293.45,294.33,
@@ -51,33 +53,39 @@ class fluid(object):
                 347.09,347.27,347.45,347.63,347.82,348.00,348.17,348.35,348.53,
                 348.71,348.88,349.06,349.23,349.41,349.58,349.76,349.93,350.10,
                 350.27,350.44,350.61 ]
-            self.T_b_curve = ahm.curve(np.array(P_b)*1.0E3,np.array(T_b));
-            self.M = 58.0791/1000.0;
-            self.omega_c = 0.347;
-            self.omega_rho = 0.625;#0.30667;
-        if name.lower() in ['dfp','decafluoropentane']:
-            self.P_c = 2070000.;
-            self.T_c = 457.;
-            self.T_b_curve = ahm.curve();
-            self.M = 252.055032;
-            self.omega = 0.62;
-    def tait_const(self,T_r,omega):
-        a = -9.070217
-        b = 62.45326;
-        d= -135.1102;
-        f = 4.79594;
-        g = 0.250047;
-        h = 1.14188;
-        j = 0.0861488;
-        k = 0.0344483;
-        e = np.exp(f + g*omega + h*omega**2);
-        B = self.P_c * (-1. + a*np.power((1.-T_r),(1./3.)) + \
-            b*np.power((1.-T_r),(2./3.)) + d*(1.-T_r) + \
-            e*np.power((1.-T_r),(4./3.)));
-        C = j + k*omega**2;
-        return (B,C);
+            self.T_b_curve = ahm.curve(np.array(P_b) * 1.0E3, np.array(T_b))
+            self.M = 58.0791 / 1000.0
+            self.omega_c = 0.347
+            self.omega_rho = 0.625  # 0.30667
+        if name.lower() in ['dfp', 'decafluoropentane']:
+            self.P_c = 2070000.
+            self.T_c = 457.
+            A = 6.43876
+            B = 1242.510
+            C = 46.568
+            T_b = np.linspace(237., 350., 1000)  # in K
+            P_b = np.power(10., A - (B / (T_b - C)))  # in kPa
+            self.T_b_curve = ahm.curve(np.array(P_b) * 1.0E3, np.array(T_b))
+            self.M = 252.055032 / 1000.0
+            self.omega_rho = 0.62
 
-    def hankinson_thomson(self,omega):
+    def tait_const(self, T_r, omega):
+        a = -9.070217
+        b = 62.45326
+        d = -135.1102
+        f = 4.79594
+        g = 0.250047
+        h = 1.14188
+        j = 0.0861488
+        k = 0.0344483
+        e = np.exp(f + g * omega + h * omega**2)
+        B = self.P_c * (-1. + a * np.power((1. - T_r), (1. / 3.)) +
+                        b * np.power((1. - T_r), (2. / 3.)) + d * (1. - T_r) +
+                        e * np.power((1. - T_r), (4. / 3.)))
+        C = j + k * omega**2
+        return (B, C)
+
+    def hankinson_thomson(self, omega):
         a = 0.2851686;
         b = -0.06379110;
         c = 0.01379173;
